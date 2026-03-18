@@ -1,13 +1,10 @@
 package com.example.auth_api.auth;
 
-import java.util.Optional;
-
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.example.auth_api.user.Role;
-import com.example.auth_api.user.User;
-import com.example.auth_api.user.UserRepository;
+import com.example.auth_api.security.JwtService;
+import com.example.auth_api.user.*;
 
 import lombok.RequiredArgsConstructor;
 
@@ -16,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public void register(RegisterRequest request) {
         if (userRepository.findByEmail(request.email()).isPresent()) {
@@ -33,5 +31,16 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
+    }
+
+    public String login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new RuntimeException("Email not found"));
+
+        if (!passwordEncoder.matches(request.password(), user.getPassword())) {
+            throw new RuntimeException("Invalid Credentials");
+        }
+
+        return jwtService.generateToken(user.getEmail());
     }
 }
